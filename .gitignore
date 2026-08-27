@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# MGTAB Dataset
+dataset/*.pt
+dataset/*.zip
+dataset/*.csv
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment variables
+.env
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
