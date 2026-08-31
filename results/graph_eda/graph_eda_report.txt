@@ -1,0 +1,16 @@
+MGTAB GRAPH / NETWORK EDA REPORT
+============================================================
+
+Number of nodes: 10,199
+Number of edges: 1,700,108
+Number of features: 788
+Number of relationship types: 7
+
+Human accounts: 7,451
+Bot accounts: 2,748
+
+Average in-degree: 166.6936
+Average out-degree: 166.6936
+Average total degree: 333.3872
+Median total degree: 153.0000
+Maximum total degree: 16,713
