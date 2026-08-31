@@ -2,7 +2,7 @@ import os
 from typing import Dict, Any
 
 # Dataset and Output Paths
-DATASET_PATH: str = os.getenv("DATASET_PATH", "data")
+DATASET_PATH: str = os.getenv("DATASET_PATH", "dataset")
 RESULTS_PATH: str = os.getenv("RESULTS_PATH", "results")
 MODELS_PATH: str = os.getenv("MODELS_PATH", "models")
 
