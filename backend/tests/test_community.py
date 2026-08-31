@@ -3,7 +3,7 @@ from backend.graph_builder import MGTABGraphLoader
 from backend.community import CommunityDetector
 
 def test_community_detection():
-    loader = MGTABGraphLoader("data").load_graph_data()
+    loader = MGTABGraphLoader("dataset").load_graph_data()
     detector = CommunityDetector(loader)
     comm_map = detector.detect_communities()
     
@@ -12,7 +12,7 @@ def test_community_detection():
     assert isinstance(comm_map[0], int)
 
 def test_community_statistics():
-    loader = MGTABGraphLoader("data").load_graph_data()
+    loader = MGTABGraphLoader("dataset").load_graph_data()
     detector = CommunityDetector(loader)
     detector.detect_communities()
     stats = detector.calculate_community_statistics()
