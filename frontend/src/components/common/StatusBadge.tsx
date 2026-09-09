@@ -3,7 +3,7 @@ import { getPredictionBadgeConfig, getCommunityRiskConfig } from '../../utils/fo
 
 interface StatusBadgeProps {
   type: 'prediction' | 'risk';
-  value?: string;
+  value?: string ;
   className?: string;
 }
 

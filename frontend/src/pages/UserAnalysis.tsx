@@ -30,7 +30,10 @@ export const UserAnalysis: React.FC = () => {
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
 
-  const [selectedUserId, setSelectedUserId] = useState<string>(id || '123456789');
+  const [selectedUserId, setSelectedUserId] = useState<string>(
+    id || '123456789'
+  );
+
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [userGraph, setUserGraph] = useState<NetworkGraphData | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
@@ -39,15 +42,62 @@ export const UserAnalysis: React.FC = () => {
   const fetchUserData = async (userId: string) => {
     setLoading(true);
     setError(null);
+
     try {
-      const [userRes, graphRes] = await Promise.all([
+      /*
+       * Fetch the user's normal profile/network data AND
+       * the real ML prediction from the FastAPI /predict endpoint.
+       */
+      const [userRes, graphRes, predictionRes] = await Promise.all([
         userService.getUser(userId),
         userService.getUserNetwork(userId),
+        userService.predictUser({
+          user_id: userId,
+        }),
       ]);
-      setProfile(userRes);
+
+      /*
+       * The backend /predict endpoint returns:
+       *
+       * prediction: 0 or 1
+       * prediction_label: "Human" or "Bot"
+       * probability: model confidence
+       *
+       * Convert the backend label into the format expected
+       * by the existing StatusBadge component.
+       */
+      const predictionLabel =
+        predictionRes.prediction_label?.toUpperCase();
+
+      let normalizedPrediction: 'BOT' | 'HUMAN' | 'UNKNOWN' = 'UNKNOWN';
+
+      if (predictionLabel === 'BOT') {
+        normalizedPrediction = 'BOT';
+      } else if (predictionLabel === 'HUMAN') {
+        normalizedPrediction = 'HUMAN';
+      } else if (predictionRes.prediction === 1) {
+        normalizedPrediction = 'BOT';
+      } else if (predictionRes.prediction === 0) {
+        normalizedPrediction = 'HUMAN';
+      }
+
+      /*
+       * Keep all existing profile information but override
+       * prediction and probability with the REAL ML model output.
+       */
+      setProfile({
+        ...userRes,
+        prediction: normalizedPrediction,
+        probability: predictionRes.probability,
+      });
+
       setUserGraph(graphRes);
     } catch (err) {
-      setError(err instanceof Error ? err.message : `Failed to load data for user #${userId}.`);
+      setError(
+        err instanceof Error
+          ? err.message
+          : `Failed to load data for user #${userId}.`
+      );
     } finally {
       setLoading(false);
     }
@@ -68,16 +118,28 @@ export const UserAnalysis: React.FC = () => {
   };
 
   const sampleUsers = [
-    { id: '123456789', label: 'Tech Trend Echo (Bot)', type: 'BOT' },
-    { id: '987654321', label: 'Dr. Sarah Mitchell (Human)', type: 'HUMAN' },
-    { id: '555123999', label: 'News Radar Bot (Bot)', type: 'BOT' },
+    {
+      id: '123456789',
+      label: 'Tech Trend Echo (Bot)',
+      type: 'BOT',
+    },
+    {
+      id: '987654321',
+      label: 'Dr. Sarah Mitchell (Human)',
+      type: 'HUMAN',
+    },
+    {
+      id: '555123999',
+      label: 'News Radar Bot (Bot)',
+      type: 'BOT',
+    },
   ];
 
   return (
     <div className="space-y-6">
       {/* Page Header */}
       <PageHeader
-        title="User &amp; Node Investigation"
+        title="User & Node Investigation"
         subtitle="Individual GNN prediction probability, SNA centrality metrics, and local relational ego-graph"
       />
 
@@ -95,7 +157,10 @@ export const UserAnalysis: React.FC = () => {
 
           {/* Quick Select Buttons */}
           <div className="flex items-center gap-1.5 overflow-x-auto text-xs">
-            <span className="text-slate-400 text-[11px] shrink-0">Sample Nodes:</span>
+            <span className="text-slate-400 text-[11px] shrink-0">
+              Sample Nodes:
+            </span>
+
             {sampleUsers.map((u) => (
               <button
                 key={u.id}
@@ -113,11 +178,17 @@ export const UserAnalysis: React.FC = () => {
         </div>
       </div>
 
-      {error && <ErrorState message={error} onRetry={() => fetchUserData(selectedUserId)} />}
+      {error && (
+        <ErrorState
+          message={error}
+          onRetry={() => fetchUserData(selectedUserId)}
+        />
+      )}
 
       {loading && (
         <div className="space-y-4">
           <LoadingSkeleton className="h-44 w-full rounded-xl" />
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <LoadingSkeleton className="h-80 w-full rounded-xl" />
             <LoadingSkeleton className="h-80 w-full rounded-xl" />
@@ -142,20 +213,30 @@ export const UserAnalysis: React.FC = () => {
                 <div className="p-3.5 rounded-xl bg-slate-800 text-cyan-400 border border-slate-700 shrink-0">
                   <User className="w-7 h-7" />
                 </div>
+
                 <div>
                   <div className="flex items-center gap-2.5">
                     <h2 className="text-lg font-bold text-slate-100 font-mono">
                       {profile.name || `User #${profile.user_id}`}
                     </h2>
+
                     {profile.features?.verified && (
-                      <span className="text-cyan-400" title="Verified Account">
+                      <span
+                        className="text-cyan-400"
+                        title="Verified Account"
+                      >
                         <ShieldCheck className="w-4 h-4" />
                       </span>
                     )}
                   </div>
+
                   <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-slate-400 font-mono">
                     <span>ID: {profile.user_id}</span>
-                    {profile.screen_name && <span>&bull; @{profile.screen_name}</span>}
+
+                    {profile.screen_name && (
+                      <span>&bull; @{profile.screen_name}</span>
+                    )}
+
                     {profile.community_id && (
                       <span className="px-2 py-0.5 rounded bg-purple-500/10 text-purple-300 border border-purple-500/30">
                         Community #{profile.community_id}
@@ -171,11 +252,19 @@ export const UserAnalysis: React.FC = () => {
                   <span className="text-xs text-slate-400 uppercase tracking-wider font-semibold">
                     Model Prediction:
                   </span>
-                  <StatusBadge type="prediction" value={profile.prediction} />
+
+                  <StatusBadge
+                    type="prediction"
+                    value={profile.prediction}
+                  />
                 </div>
+
                 {profile.probability !== undefined && (
                   <div className="w-48">
-                    <ProbabilityBar probability={profile.probability} showLabels={false} />
+                    <ProbabilityBar
+                      probability={profile.probability}
+                      showLabels={false}
+                    />
                   </div>
                 )}
               </div>
@@ -184,52 +273,74 @@ export const UserAnalysis: React.FC = () => {
             {/* Account Metadata Features Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 text-xs">
               <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800">
-                <span className="text-slate-400 block mb-1">Followers</span>
+                <span className="text-slate-400 block mb-1">
+                  Followers
+                </span>
+
                 <span className="font-mono font-bold text-slate-200 text-sm">
                   {formatNumber(profile.features?.followers_count)}
                 </span>
               </div>
 
               <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800">
-                <span className="text-slate-400 block mb-1">Following</span>
+                <span className="text-slate-400 block mb-1">
+                  Following
+                </span>
+
                 <span className="font-mono font-bold text-slate-200 text-sm">
                   {formatNumber(profile.features?.following_count)}
                 </span>
               </div>
 
               <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800">
-                <span className="text-slate-400 block mb-1">Statuses / Tweets</span>
+                <span className="text-slate-400 block mb-1">
+                  Statuses / Tweets
+                </span>
+
                 <span className="font-mono font-bold text-slate-200 text-sm">
                   {formatNumber(profile.features?.statuses_count)}
                 </span>
               </div>
 
               <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800">
-                <span className="text-slate-400 block mb-1">Tweet Rate/Day</span>
+                <span className="text-slate-400 block mb-1">
+                  Tweet Rate/Day
+                </span>
+
                 <span className="font-mono font-bold text-amber-400 text-sm">
                   {profile.features?.tweet_frequency_per_day
-                    ? `${profile.features.tweet_frequency_per_day.toFixed(1)}/day`
+                    ? `${profile.features.tweet_frequency_per_day.toFixed(
+                        1
+                      )}/day`
                     : '—'}
                 </span>
               </div>
 
               <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800">
-                <span className="text-slate-400 block mb-1">Default Profile</span>
+                <span className="text-slate-400 block mb-1">
+                  Default Profile
+                </span>
+
                 <span className="font-mono font-bold text-slate-200 text-sm flex items-center gap-1">
                   {profile.features?.default_profile ? (
                     <span className="text-red-400 flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Yes
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Yes
                     </span>
                   ) : (
                     <span className="text-emerald-400 flex items-center gap-1">
-                      <XCircle className="w-3.5 h-3.5" /> No
+                      <XCircle className="w-3.5 h-3.5" />
+                      No
                     </span>
                   )}
                 </span>
               </div>
 
               <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800">
-                <span className="text-slate-400 block mb-1">Account Age</span>
+                <span className="text-slate-400 block mb-1">
+                  Account Age
+                </span>
+
                 <span className="font-mono font-bold text-slate-200 text-sm">
                   {profile.features?.account_age_days
                     ? `${profile.features.account_age_days} days`
@@ -243,10 +354,12 @@ export const UserAnalysis: React.FC = () => {
           <div className="p-5 rounded-xl border border-slate-800 bg-slate-900/80 shadow-lg space-y-3">
             <div className="flex items-center gap-2 pb-2 border-b border-slate-800">
               <NetIcon className="w-4 h-4 text-cyan-400" />
+
               <h3 className="text-sm font-bold uppercase tracking-wider text-slate-100">
                 Social Network Analysis (SNA) Centrality Metrics
               </h3>
             </div>
+
             <UserMetricsGrid metrics={profile.network} />
           </div>
 
@@ -256,21 +369,28 @@ export const UserAnalysis: React.FC = () => {
             <div className="p-5 rounded-xl border border-slate-800 bg-slate-900/80 shadow-lg space-y-4">
               <div className="flex items-center gap-2 pb-2 border-b border-slate-800">
                 <Sparkles className="w-4 h-4 text-purple-400" />
+
                 <div>
                   <h3 className="text-sm font-bold uppercase tracking-wider text-slate-100">
                     GNN Model Explainability
                   </h3>
+
                   <p className="text-[11px] text-slate-400">
                     Feature importances contributing to this classification
                   </p>
                 </div>
               </div>
-              <FeatureImportanceChart explanations={profile.explanation} />
-              
+
+              <FeatureImportanceChart
+                explanations={profile.explanation}
+              />
+
               {/* Sampled Entity Activity */}
               {profile.recent_activity && (
                 <div className="pt-3 border-t border-slate-800">
-                  <UserRelationshipList activity={profile.recent_activity} />
+                  <UserRelationshipList
+                    activity={profile.recent_activity}
+                  />
                 </div>
               )}
             </div>
@@ -280,10 +400,12 @@ export const UserAnalysis: React.FC = () => {
               <div className="flex items-center justify-between pb-2 border-b border-slate-800">
                 <div className="flex items-center gap-2">
                   <NetIcon className="w-4 h-4 text-cyan-400" />
+
                   <h3 className="text-sm font-bold uppercase tracking-wider text-slate-100">
                     Local Ego-Network Subgraph
                   </h3>
                 </div>
+
                 <button
                   onClick={() => navigate('/network')}
                   className="inline-flex items-center gap-1 text-xs text-cyan-400 hover:text-cyan-300 font-semibold"

@@ -10,6 +10,10 @@ export const API_BASE_URL: string =
 export const FORCE_MOCK: boolean = 
   import.meta.env.VITE_USE_MOCK === 'true' || import.meta.env.VITE_USE_MOCK === '1';
 
+export const FORCE_MOCK_PREDICTION: boolean =
+  import.meta.env.VITE_USE_MOCK_PREDICTION === 'true' ||
+  import.meta.env.VITE_USE_MOCK_PREDICTION === '1';
+
 // Create Axios Instance
 export const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,

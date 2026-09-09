@@ -31,3 +31,14 @@ Thumbs.db
 
 # Logs
 *.log
+
+# ML generated artifacts
+models/
+results/ml_dataset.csv
+results/sna_features.csv
+results/*.pkl
+
+# Generated ML/SNA outputs
+results/*.png
+results/sna_metadata.json
+results/communities.json

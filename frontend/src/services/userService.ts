@@ -1,6 +1,10 @@
-import { apiClient, FORCE_MOCK } from './api';
+import { apiClient, FORCE_MOCK, FORCE_MOCK_PREDICTION } from './api';
 import { mockAdapter } from '../mock/mockAdapter';
-import { UserProfile, PredictRequest, PredictResponse } from '../types/user';
+import {
+  UserProfile,
+  PredictRequest,
+  PredictResponse,
+} from '../types/user';
 import { NetworkGraphData } from '../types/network';
 
 export const userService = {
@@ -8,11 +12,15 @@ export const userService = {
     if (FORCE_MOCK) {
       return mockAdapter.getUser(userId);
     }
+
     try {
       const response = await apiClient.get<UserProfile>(`/user/${userId}`);
       return response.data;
-    } catch {
-      console.warn(`[userService] FastAPI /user/${userId} unavailable, falling back to mock adapter.`);
+    } catch (error) {
+      console.warn(
+        `[userService] FastAPI /user/${userId} unavailable.`
+      );
+
       return mockAdapter.getUser(userId);
     }
   },
@@ -21,25 +29,57 @@ export const userService = {
     if (FORCE_MOCK) {
       return mockAdapter.getUserNetwork(userId);
     }
+
     try {
-      const response = await apiClient.get<NetworkGraphData>(`/user/${userId}/network`);
+      const response = await apiClient.get<NetworkGraphData>(
+        `/user/${userId}/network`
+      );
+
       return response.data;
-    } catch {
-      console.warn(`[userService] FastAPI /user/${userId}/network unavailable, falling back to mock adapter.`);
+    } catch (error) {
+      console.warn(
+        `[userService] FastAPI /user/${userId}/network unavailable.`
+      );
+
       return mockAdapter.getUserNetwork(userId);
     }
   },
 
   async predictUser(req: PredictRequest): Promise<PredictResponse> {
-    if (FORCE_MOCK) {
-      return mockAdapter.predictUser(req);
+
+    const response = await apiClient.post<PredictResponse>(
+      '/predict',
+      req
+    );
+
+    const data = response.data;
+
+
+    let normalizedPrediction: 'BOT' | 'HUMAN' | 'UNKNOWN';
+
+    if (data.prediction_label) {
+      const label = data.prediction_label.toUpperCase();
+
+      if (label === 'BOT') {
+        normalizedPrediction = 'BOT';
+      } else if (label === 'HUMAN') {
+        normalizedPrediction = 'HUMAN';
+      } else {
+        normalizedPrediction = 'UNKNOWN';
+      }
+    } else if (data.prediction === 1) {
+      normalizedPrediction = 'BOT';
+    } else if (data.prediction === 0) {
+      normalizedPrediction = 'HUMAN';
+    } else {
+      normalizedPrediction = 'UNKNOWN';
     }
-    try {
-      const response = await apiClient.post<PredictResponse>('/predict', req);
-      return response.data;
-    } catch {
-      console.warn('[userService] FastAPI /predict unavailable, falling back to mock adapter.');
-      return mockAdapter.predictUser(req);
-    }
+
+    return {
+      ...data,
+      prediction: data.prediction,
+      prediction_label: normalizedPrediction,
+      probability: data.probability,
+    };
   },
 };
