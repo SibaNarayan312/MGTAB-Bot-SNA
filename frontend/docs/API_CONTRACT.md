@@ -342,46 +342,35 @@ Returns evaluation benchmarks for the Relational Graph Convolutional Network (RG
 * **Response Body:**
 ```json
 {
+  "status": "available",
   "metrics": {
-    "accuracy": 0.942,
-    "precision": 0.918,
-    "recall": 0.894,
-    "f1_score": 0.906,
-    "roc_auc": 0.963,
-    "pr_auc": 0.948,
-    "log_loss": 0.158
+    "accuracy": 0.8578,
+    "precision": 0.6796,
+    "recall": 0.8945,
+    "f1_score": 0.7724,
+    "roc_auc": 0.9415
   },
   "confusion_matrix": {
-    "true_negative": 1420,
-    "false_positive": 66,
-    "false_negative": 58,
-    "true_positive": 496
+    "true_negative": 629,
+    "false_positive": 116,
+    "false_negative": 29,
+    "true_positive": 246
   },
   "metadata": {
-    "model_name": "Relational Graph Convolutional Network (RGCN + Node2Vec)",
-    "model_version": "v2.4.1",
-    "architecture_type": "Multi-Relational GNN with Multi-Head Edge Attention",
-    "dataset_name": "MGTAB Benchmark",
+    "model_name": "RGCN (2-layer RGCNConv)",
+    "architecture_type": "Relational Graph Convolutional Network",
+    "dataset_name": "MGTAB Twitter Benchmark",
     "training_samples": 8159,
-    "test_samples": 2040,
-    "validation_split": "80/20 Stratified Graph Split",
-    "evaluation_date": "2026-08-24",
-    "feature_count": 64,
-    "graph_layers": 3
+    "test_samples": 1020,
+    "validation_split": "80/10/10 Stratified Node Split",
+    "feature_count": 788,
+    "graph_layers": 2,
+    "embedding_dimension": 64,
+    "epochs_trained": 24
   },
-  "roc_curve": [
-    { "fpr": 0.0, "tpr": 0.0 },
-    { "fpr": 0.04, "tpr": 0.82 },
-    { "fpr": 1.0, "tpr": 1.0 }
-  ],
-  "feature_importances": [
-    { "feature": "Multi-Relational In/Out Degree Ratio", "importance": 0.24 },
-    { "feature": "PageRank Centrality Score", "importance": 0.19 }
-  ],
-  "baseline_comparisons": [
-    { "model_name": "Random Forest (Tabular)", "accuracy": 0.834, "f1_score": 0.782, "roc_auc": 0.871 },
-    { "model_name": "Standard GCN (Homogeneous)", "accuracy": 0.899, "f1_score": 0.865, "roc_auc": 0.931 },
-    { "model_name": "Proposed Multi-Relational RGCN", "accuracy": 0.942, "f1_score": 0.906, "roc_auc": 0.963 }
+  "all_models": [
+    { "model_name": "RGCN (2-layer RGCNConv)", "metrics": { "accuracy": 0.8578, "f1_score": 0.7724, "roc_auc": 0.9415 } },
+    { "model_name": "HistGradientBoosting", "metrics": { "accuracy": 0.9377, "f1_score": 0.8863, "roc_auc": 0.9827 } }
   ]
 }
 ```
@@ -391,29 +380,24 @@ Returns evaluation benchmarks for the Relational Graph Convolutional Network (RG
 ## 8. Real-Time Prediction Endpoint
 
 ### `POST /predict`
-Runs inference on an ad-hoc or updated account node.
+Runs bot/human inference for a given user ID using the trained sklearn model.
 
 * **Request Body:**
 ```json
 {
-  "user_id": "123456789",
-  "features": {}
+  "user_id": 0,
+  "features": null
 }
 ```
 
 * **Response Body:**
 ```json
 {
-  "user_id": "123456789",
-  "prediction": "BOT",
-  "probability": 0.934,
-  "confidence": 0.96,
-  "explanation": [
-    {
-      "feature": "RGCN Layer-3 Activation",
-      "importance": 0.82,
-      "description": "High embedding proximity to known coordinated clusters"
-    }
-  ]
+  "status": "success",
+  "message": "ML prediction executed successfully.",
+  "user_id": 0,
+  "prediction": 1,
+  "prediction_label": "Bot",
+  "probability": 0.934
 }
 ```

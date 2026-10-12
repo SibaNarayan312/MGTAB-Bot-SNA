@@ -224,15 +224,15 @@ export const mockAdapter = {
       confidence: 0.95,
       explanation: [
         {
-          feature: 'Graph Neural Network RGCN Layer-3 Activation',
+          feature: 'SNA Degree Centrality',
           importance: 0.82,
-          description: 'High relational connectivity with suspicious seed neighborhoods',
+          description: 'High connectivity with suspicious neighborhoods (HistGradientBoosting feature)',
           direction: 'positive',
         },
         {
-          feature: 'Temporal Tweet Burstiness',
+          feature: 'Profile Feature Ratio',
           importance: 0.74,
-          description: 'Synchronized status activity patterns',
+          description: 'Account metadata patterns consistent with automated behaviour',
           direction: 'positive',
         },
       ],

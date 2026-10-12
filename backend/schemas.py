@@ -243,10 +243,18 @@ class PredictionResponse(BaseModel):
 
     prediction_label: Optional[str] = Field(
         None,
-        description="Human-readable prediction: HUMAN or BOT"
+        description="Human-readable prediction: Human or Bot"
     )
 
     probability: Optional[float] = Field(
         None,
         description="Probability of the predicted class"
+    )
+
+    model_used: Optional[str] = Field(
+        None,
+        description=(
+            "Name of the model that produced this prediction. "
+            "Currently: 'HistGradientBoosting (sklearn, 806 tabular features)'"
+        )
     )

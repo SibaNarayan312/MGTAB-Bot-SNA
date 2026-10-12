@@ -1195,149 +1195,102 @@ class SNAService:
     def get_model_performance(
         self
     ) -> Dict[str, Any]:
+        """
+        Return real model performance metrics.
+
+        Sources:
+        - results/rgcn_results.json   (RGCN evaluation, if trained)
+        - results/final_model_metrics.csv (sklearn HistGradientBoosting baseline)
+
+        Never returns fabricated or hardcoded metrics.
+        """
+        import json as _json
+
+        models = []
+
+        # --- Load RGCN results (from actual training) ---
+        rgcn_path = os.path.join(self.results_dir, "rgcn_results.json")
+        rgcn_data = None
+
+        if os.path.exists(rgcn_path):
+            try:
+                with open(rgcn_path, "r") as f:
+                    rgcn_data = _json.load(f)
+
+                models.append({
+                    "model_name": "RGCN (2-layer RGCNConv)",
+                    "architecture_type": rgcn_data.get("architecture", {}).get(
+                        "type", "Relational Graph Convolutional Network"
+                    ),
+                    "metrics": rgcn_data.get("test_metrics", {}),
+                    "confusion_matrix": rgcn_data.get("confusion_matrix", {}),
+                    "training": rgcn_data.get("training", {}),
+                    "dataset": rgcn_data.get("dataset", {}),
+                    "split": rgcn_data.get("split", {}),
+                    "architecture": rgcn_data.get("architecture", {}),
+                })
+            except Exception as e:
+                logger.warning(f"Failed to load RGCN results: {e}")
+
+        # --- Load sklearn baseline results ---
+        baseline_path = os.path.join(
+            self.results_dir, "final_model_metrics.csv"
+        )
+
+        if os.path.exists(baseline_path):
+            try:
+                df = pd.read_csv(baseline_path)
+                for _, row in df.iterrows():
+                    models.append({
+                        "model_name": str(row.get("model", "sklearn baseline")),
+                        "architecture_type": "sklearn (tabular)",
+                        "metrics": {
+                            "accuracy": float(row.get("accuracy", 0)),
+                            "precision": float(row.get("precision", 0)),
+                            "recall": float(row.get("recall", 0)),
+                            "f1_score": float(row.get("f1_score", 0)),
+                            "roc_auc": float(row.get("roc_auc", 0))
+                                if "roc_auc" in row else None,
+                        },
+                    })
+            except Exception as e:
+                logger.warning(f"Failed to load baseline results: {e}")
+
+        if not models:
+            return {
+                "status": "not_available",
+                "message": (
+                    "No model evaluation results found. "
+                    "Run the training pipeline first."
+                ),
+                "models": [],
+            }
+
+        # Primary model = first model with metrics (RGCN preferred)
+        primary = models[0]
 
         return {
-
-            "metrics": {
-
-                "accuracy": 0.912,
-
-                "precision": 0.894,
-
-                "recall": 0.885,
-
-                "f1_score": 0.889,
-
-                "roc_auc": 0.945,
-
-                "pr_auc": 0.921
-            },
-
-            "confusion_matrix": {
-
-                "true_negative": 712,
-
-                "false_positive": 40,
-
-                "false_negative": 35,
-
-                "true_positive": 213
-            },
-
+            "status": "available",
+            "metrics": primary.get("metrics", {}),
+            "confusion_matrix": primary.get("confusion_matrix", {}),
             "metadata": {
-
-                "model_name":
-                    "Multi-Relational Graph Neural Network (RGCN + SNA)",
-
-                "model_version":
-                    "1.0.0-MGTAB",
-
-                "architecture_type":
-                    "Relational Graph Convolutional Network (RGCN)",
-
-                "dataset_name":
-                    "MGTAB Twitter Benchmark",
-
-                "training_samples":
-                    800,
-
-                "test_samples":
-                    200,
-
-                "feature_count":
-                    788 + 18
+                "model_name": primary.get("model_name", ""),
+                "architecture_type": primary.get("architecture_type", ""),
+                "dataset_name": "MGTAB Twitter Benchmark",
+                "training": primary.get("training", {}),
+                "split": primary.get("split", {}),
+                "architecture": primary.get("architecture", {}),
             },
-
-            "roc_curve": [
-
-                {
-                    "fpr": 0.0,
-                    "tpr": 0.0
-                },
-
-                {
-                    "fpr": 0.05,
-                    "tpr": 0.75
-                },
-
-                {
-                    "fpr": 0.10,
-                    "tpr": 0.88
-                },
-
-                {
-                    "fpr": 0.20,
-                    "tpr": 0.94
-                },
-
-                {
-                    "fpr": 1.0,
-                    "tpr": 1.0
-                }
-            ],
-
-            "feature_importances": [
-
-                {
-                    "feature":
-                        "Pagerank",
-
-                    "importance":
-                        0.22,
-
-                    "category":
-                        "graph"
-                },
-
-                {
-                    "feature":
-                        "Degree Centrality",
-
-                    "importance":
-                        0.18,
-
-                    "category":
-                        "graph"
-                },
-
-                {
-                    "feature":
-                        "Coordination Score",
-
-                    "importance":
-                        0.16,
-
-                    "category":
-                        "behavioral"
-                },
-
-                {
-                    "feature":
-                        "LaBSE Text Embeddings",
-
-                    "importance":
-                        0.14,
-
-                    "category":
-                        "text"
-                },
-
-                {
-                    "feature":
-                        "Clustering Coefficient",
-
-                    "importance":
-                        0.10,
-
-                    "category":
-                        "graph"
-                }
-            ]
+            "all_models": models,
         }
+
 
     # ============================================================
     # ML BOT PREDICTION
     # ============================================================
+
+    # The model name reported in API responses:
+    _PREDICT_MODEL_NAME = "HistGradientBoosting (sklearn, 806 tabular features)"
 
     def predict_user_bot(
         self,
@@ -1345,10 +1298,24 @@ class SNAService:
         features: Optional[Dict[str, float]] = None
     ) -> Dict[str, Any]:
         """
-        Predict whether a user is a bot or human using the trained ML model.
-        The ML feature vector is automatically loaded from ml_dataset.csv
-        using the supplied user_id. The dashboard does not need to provide
-        the 806 ML features manually.
+        Predict whether a user is a bot or human.
+
+        MODEL USED:
+            This endpoint uses the **HistGradientBoosting** sklearn model
+            loaded from models/model.pkl.  It consumes 806 tabular features
+            (20 profile + 768 text embeddings + 18 SNA) loaded from
+            results/ml_dataset.csv.
+
+            This is NOT the RGCN model.  The RGCN (Relational Graph
+            Convolutional Network) is a separate graph-based model
+            evaluated in results/rgcn_results.json and checkpointed at
+            models/rgcn_best.pt.  RGCN inference requires the full
+            PyG graph (features.pt, edge_index.pt, edge_type.pt) and
+            is not served through this tabular prediction endpoint.
+
+        The ML feature vector is automatically looked up from
+        ml_dataset.csv using the supplied user_id.  The dashboard
+        does not need to provide the 806 features manually.
         """
 
     # ------------------------------------------------------------
@@ -1357,10 +1324,11 @@ class SNAService:
         if self.ml_model is None:
             return {
                 "status": "model_not_available",
-                "message": "ML prediction model is not available.",
+                "message": "ML prediction model (models/model.pkl) is not loaded.",
                 "user_id": user_id,
                 "prediction": None,
-                "probability": None
+                "probability": None,
+                "model_used": None,
             }
 
         try:
@@ -1376,10 +1344,11 @@ class SNAService:
             if self.ml_features is None:
                 return {
                     "status": "error",
-                    "message": "ML feature dataset is not loaded.",
+                    "message": "ML feature dataset (results/ml_dataset.csv) is not loaded.",
                     "user_id": user_id,
                     "prediction": None,
-                    "probability": None
+                    "probability": None,
+                    "model_used": None,
                 }
             
             
@@ -1415,7 +1384,8 @@ class SNAService:
 
             logger.info(
                 f"Running ML prediction for user {user_id} "
-                f"using {actual_features} features."
+                f"using {actual_features} features "
+                f"(model: {self._PREDICT_MODEL_NAME})."
             )
 
         # --------------------------------------------------------
@@ -1462,7 +1432,8 @@ class SNAService:
                 "user_id": user_id,
                 "prediction": prediction,
                 "prediction_label": prediction_label,
-                "probability": probability
+                "probability": probability,
+                "model_used": self._PREDICT_MODEL_NAME,
            }
 
         except Exception as e:
@@ -1475,5 +1446,6 @@ class SNAService:
                 "message": f"ML model inference failed: {str(e)}",
                 "user_id": user_id,
                 "prediction": None,
-                "probability": None
+                "probability": None,
+                "model_used": self._PREDICT_MODEL_NAME,
            }

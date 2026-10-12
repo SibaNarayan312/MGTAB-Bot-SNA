@@ -68,7 +68,7 @@ export const ModelPerformance: React.FC = () => {
         <MetricCard
           title="Accuracy"
           value={formatPercent(data?.metrics?.accuracy, 1)}
-          subText="Test Set (2,040 samples)"
+          subText="Test Set (1,020 samples)"
           icon={Award}
           loading={loading}
           variant="cyan"
@@ -230,7 +230,7 @@ export const ModelPerformance: React.FC = () => {
 
           <div className="p-3 rounded-lg bg-slate-950/70 border border-slate-800 text-xs text-slate-400">
             <span className="text-cyan-400 font-semibold">Key Finding: </span>
-            Incorporating multi-relational graph convolution improves F1-score by +6.3% over homogeneous GNNs and +12.4% over tabular models on MGTAB.
+            HistGradientBoosting (tabular, 806 features) achieves best F1 (88.63%), while the 2-layer RGCN leveraging graph structure directly achieves 0.9415 ROC-AUC on 788 node features across 7 relation types.
           </div>
         </div>
       </div>

@@ -39,7 +39,7 @@ export const MOCK_STATISTICS: OverviewStatistics = {
   system_insights: [
     'Graph density of 0.00284 with 10,199 active nodes and 147,820 multi-relational edges in MGTAB benchmark.',
     'Identified 7 communities with elevated coordination scores (>0.75) exhibiting synchronous retweeting and mention patterns.',
-    'Multi-relational Relational Graph Convolutional Network (RGCN) achieved 94.2% test accuracy with 0.963 ROC-AUC.',
+    '2-layer RGCN (RGCNConv, 7 relation types) achieved 85.78% test accuracy with 0.9415 ROC-AUC. HistGradientBoosting baseline: 93.77% accuracy.',
   ],
 };
 
@@ -209,9 +209,9 @@ export const MOCK_USERS: Record<string, UserProfile> = {
         direction: 'positive',
       },
       {
-        feature: 'Temporal Retweet Synchronization',
+        feature: 'High Retweet-to-Follow Ratio',
         importance: 0.81,
-        description: 'Coordinated retweets within sub-second latencies of seed accounts',
+        description: 'Disproportionately high retweet interactions compared to follow connections',
         direction: 'positive',
       },
     ],
@@ -556,61 +556,56 @@ export const MOCK_COORDINATION: CoordinationSummaryResponse = {
 };
 
 // Model Performance Mock Dataset
+// NOTE: These are ACTUAL results from trained models, not fabricated.
+// RGCN results from: results/rgcn_results.json (epoch 24 checkpoint)
+// Baseline results from: results/model_comparison.csv
 export const MOCK_MODEL_PERFORMANCE: ModelPerformanceResponse = {
   metrics: {
-    accuracy: 0.942,
-    precision: 0.918,
-    recall: 0.894,
-    f1_score: 0.906,
-    roc_auc: 0.963,
-    pr_auc: 0.948,
-    log_loss: 0.158,
+    accuracy: 0.8578,
+    precision: 0.6796,
+    recall: 0.8945,
+    f1_score: 0.7724,
+    roc_auc: 0.9415,
   },
   confusion_matrix: {
-    true_negative: 1420,  // Actual Human, Predicted Human (TN)
-    false_positive: 66,   // Actual Human, Predicted Bot (FP)
-    false_negative: 58,   // Actual Bot, Predicted Human (FN)
-    true_positive: 496,   // Actual Bot, Predicted Bot (TP)
+    true_negative: 629,   // Actual Human, Predicted Human (TN)
+    false_positive: 116,  // Actual Human, Predicted Bot (FP)
+    false_negative: 29,   // Actual Bot, Predicted Human (FN)
+    true_positive: 246,   // Actual Bot, Predicted Bot (TP)
   },
   metadata: {
-    model_name: 'Relational Graph Convolutional Network (RGCN + Node2Vec)',
-    model_version: 'v2.4.1',
-    architecture_type: 'Multi-Relational GNN with Multi-Head Edge Attention',
+    model_name: 'RGCN (2-layer RGCNConv)',
+    model_version: 'v1.0.0',
+    architecture_type: 'Relational Graph Convolutional Network (RGCNConv)',
     dataset_name: 'MGTAB (Multi-relational Graph Twitter Account Benchmark)',
     dataset_version: '1.0',
     training_samples: 8159,
-    test_samples: 2040,
-    validation_split: '80/20 Stratified Graph Split',
-    evaluation_date: '2026-08-24',
-    feature_count: 64,
-    graph_layers: 3,
-    embedding_dimension: 128,
-    epochs_trained: 150,
+    test_samples: 1020,
+    validation_split: '80/10/10 Stratified Node Split',
+    evaluation_date: '2026-09-27',
+    feature_count: 788,
+    graph_layers: 2,
+    embedding_dimension: 64,
+    epochs_trained: 24,
   },
   roc_curve: [
     { fpr: 0.0, tpr: 0.0 },
-    { fpr: 0.01, tpr: 0.42 },
-    { fpr: 0.02, tpr: 0.68 },
-    { fpr: 0.04, tpr: 0.82 },
-    { fpr: 0.06, tpr: 0.89 },
-    { fpr: 0.1, tpr: 0.94 },
-    { fpr: 0.2, tpr: 0.97 },
-    { fpr: 0.4, tpr: 0.99 },
+    { fpr: 0.05, tpr: 0.70 },
+    { fpr: 0.10, tpr: 0.82 },
+    { fpr: 0.16, tpr: 0.89 },
+    { fpr: 0.30, tpr: 0.95 },
+    { fpr: 0.50, tpr: 0.98 },
     { fpr: 1.0, tpr: 1.0 },
   ],
   feature_importances: [
-    { feature: 'Multi-Relational In/Out Degree Ratio', importance: 0.24, category: 'graph' },
-    { feature: 'PageRank Centrality Score', importance: 0.19, category: 'graph' },
-    { feature: 'Local Triad Clustering Coefficient', importance: 0.16, category: 'graph' },
-    { feature: 'Account Age & Tweet Velocity', importance: 0.14, category: 'temporal' },
-    { feature: 'Follower / Following Asymmetry', importance: 0.12, category: 'user' },
-    { feature: 'Default Profile Metadata Vector', importance: 0.09, category: 'user' },
-    { feature: 'Hashtag Diversity Entropy', importance: 0.06, category: 'text' },
+    { feature: 'Profile Features (20 dims)', importance: 0.3767, category: 'user' },
+    { feature: 'Text Embeddings (768 dims)', importance: 0.0782, category: 'text' },
+    { feature: 'SNA Graph Features (18 dims)', importance: 0.0336, category: 'graph' },
   ],
   baseline_comparisons: [
-    { model_name: 'Random Forest (Tabular Only)', accuracy: 0.834, f1_score: 0.782, roc_auc: 0.871 },
-    { model_name: 'Node2Vec + MLP', accuracy: 0.881, f1_score: 0.843, roc_auc: 0.912 },
-    { model_name: 'Standard GCN (Homogeneous)', accuracy: 0.899, f1_score: 0.865, roc_auc: 0.931 },
-    { model_name: 'Proposed Multi-Relational RGCN', accuracy: 0.942, f1_score: 0.906, roc_auc: 0.963 },
+    { model_name: 'Logistic Regression (806 features)', accuracy: 0.9020, f1_score: 0.8302, roc_auc: 0.9020 },
+    { model_name: 'Random Forest (806 features)', accuracy: 0.8961, f1_score: 0.7897, roc_auc: 0.8961 },
+    { model_name: 'HistGradientBoosting (806 features)', accuracy: 0.9377, f1_score: 0.8863, roc_auc: 0.9827 },
+    { model_name: 'RGCN 2-layer (788 node features, graph)', accuracy: 0.8578, f1_score: 0.7724, roc_auc: 0.9415 },
   ],
 };

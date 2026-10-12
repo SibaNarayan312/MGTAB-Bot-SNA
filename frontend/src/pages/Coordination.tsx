@@ -134,7 +134,7 @@ export const Coordination: React.FC = () => {
               Identified Potentially Coordinated Groups
             </h3>
             <p className="text-xs text-slate-400 mt-0.5">
-              Ranked by coordination score based on temporal synchronization and shared interaction density
+              Ranked by coordination score based on topological structure and shared interaction density
             </p>
           </div>
         </div>
