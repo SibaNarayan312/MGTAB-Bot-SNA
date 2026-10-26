@@ -85,7 +85,7 @@ If backend fields are named slightly differently (e.g. `communityId` vs `communi
 
 1. Start FastAPI:
    ```bash
-   uvicorn main:app --reload --port 8000
+   uvicorn backend.api:app --reload --port 8000
    ```
 2. Start Frontend:
    ```bash

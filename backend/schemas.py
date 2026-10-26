@@ -69,6 +69,61 @@ class GraphStatisticsResponse(BaseModel):
         json_schema_extra={"example": 16}
     )
 
+    total_users: Optional[int] = Field(
+        None,
+        description="Alias for nodes (total users in benchmark)"
+    )
+
+    total_relationships: Optional[int] = Field(
+        None,
+        description="Alias for edges (total multi-relational interactions)"
+    )
+
+    bot_count: Optional[int] = Field(
+        None,
+        description="Derived ground truth bot accounts in dataset"
+    )
+
+    human_count: Optional[int] = Field(
+        None,
+        description="Derived ground truth human accounts in dataset"
+    )
+
+    bot_ratio: Optional[float] = Field(
+        None,
+        description="Derived ground truth bot ratio"
+    )
+
+    community_count: Optional[int] = Field(
+        None,
+        description="Alias for communities count"
+    )
+
+    flagged_groups_count: Optional[int] = Field(
+        None,
+        description="Count of high-risk or flagged coordinated communities"
+    )
+
+    network: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Network topological metrics"
+    )
+
+    relationship_breakdown: Optional[List[Dict[str, Any]]] = Field(
+        None,
+        description="Breakdown of multi-relational edges"
+    )
+
+    community_size_distribution: Optional[List[Dict[str, Any]]] = Field(
+        None,
+        description="Distribution of community sizes"
+    )
+
+    system_insights: Optional[List[str]] = Field(
+        None,
+        description="Automated system insights"
+    )
+
 
 # ============================================================
 # User SNA Response
@@ -150,6 +205,16 @@ class UserResponse(BaseModel):
                     "(0: Human, 1: Bot)"
     )
 
+    network: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Nested network metrics for frontend visualization"
+    )
+
+    features: Optional[Dict[str, Any]] = Field(
+        None,
+        description="User account features (profile metadata, degree metrics)"
+    )
+
 
 # ============================================================
 # Network Graph Visualization Schemas
@@ -162,12 +227,14 @@ class NetworkNode(BaseModel):
     pagerank: float
     degree: int
     bot_label: Optional[int] = None
+    prediction: Optional[str] = None
 
 
 class NetworkEdge(BaseModel):
     source: int
     target: int
     relationship_type: str
+    relationship: Optional[str] = None
     weight: float
 
 
@@ -178,6 +245,7 @@ class UserNetworkResponse(BaseModel):
     edge_count: int
     nodes: List[NetworkNode]
     edges: List[NetworkEdge]
+    metadata: Optional[Dict[str, Any]] = None
 
 
 # ============================================================
@@ -192,12 +260,23 @@ class CommunitySummary(BaseModel):
     external_edges: int
     top_nodes: List[int]
 
+    id: Optional[int] = Field(None, description="Alias for community_id")
+    member_count: Optional[int] = Field(None, description="Alias for size")
+    bot_count: Optional[int] = Field(None, description="Bot count in community")
+    human_count: Optional[int] = Field(None, description="Human count in community")
+    bot_ratio: Optional[float] = Field(None, description="Bot ratio in community")
+    status: Optional[str] = Field(None, description="Risk status")
+    coordination_score: Optional[float] = Field(None, description="Coordination score")
+
 
 class CommunitiesResponse(BaseModel):
     total: int
     page: int
     page_size: int
     communities: List[CommunitySummary]
+
+    total_communities: Optional[int] = Field(None, description="Alias for total")
+    overall_stats: Optional[Dict[str, Any]] = Field(None, description="Summary stats across communities")
 
 
 class CommunityDetailResponse(BaseModel):
@@ -209,6 +288,16 @@ class CommunityDetailResponse(BaseModel):
     top_nodes: List[int]
     relationship_distribution: Dict[str, int]
     coordination_analysis: Dict[str, Any]
+
+    id: Optional[int] = Field(None, description="Alias for community_id")
+    member_count: Optional[int] = Field(None, description="Alias for size")
+    bot_count: Optional[int] = Field(None, description="Bot count in community")
+    human_count: Optional[int] = Field(None, description="Human count in community")
+    bot_ratio: Optional[float] = Field(None, description="Bot ratio in community")
+    status: Optional[str] = Field(None, description="Risk status")
+    coordination_score: Optional[float] = Field(None, description="Coordination score")
+    signals: Optional[List[Dict[str, Any]]] = Field(None, description="Coordination signals")
+    network_statistics: Optional[Dict[str, Any]] = Field(None, description="Network statistics")
 
 
 # ============================================================

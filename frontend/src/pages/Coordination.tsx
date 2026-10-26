@@ -79,7 +79,7 @@ export const Coordination: React.FC = () => {
         <MetricCard
           title="Active Signal Types"
           value={formatNumber(data?.top_coordination_signals?.length)}
-          subText="Temporal &amp; Topological"
+          subText="Relational &amp; Topological"
           icon={Sparkles}
           loading={loading}
         />

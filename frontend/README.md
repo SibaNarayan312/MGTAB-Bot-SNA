@@ -13,7 +13,7 @@ This dashboard is the interactive frontend interface for a Social Network Analys
 * **Investigate Individual Accounts:** GNN classification probabilities, local ego-network subgraphs, and feature importances.
 * **Visualize Multi-Relational Networks:** High-performance interactive **Cytoscape.js** graph with multi-edge coloring, layout algorithms (COSE, Concentric, BFS, Grid), zooming, and side inspectors.
 * **Analyze Graph Communities:** Modularity clustering, bot-heavy cluster identification, conductance, and density metrics.
-* **Detect Coordinated Behavioral Patterns:** Temporal synchronization bursts, shared URL patterns, and hashtag hijacking.
+* **Detect Coordinated Behavioral Patterns:** Multi-relational interaction density, shared URL patterns, and hashtag hijacking.
 * **Evaluate ML & GNN Models:** RGCN test accuracy (85.78%), F1-score (0.7724), ROC-AUC (0.9415), HistGradientBoosting baseline accuracy (93.77%), 2x2 confusion matrix, and model comparison table.
 
 ---

@@ -99,6 +99,9 @@ class CommunityDetector:
         - top_nodes (sorted by PageRank/degree)
         - relationship_distribution
         """
+        if self.community_stats and not pagerank_dict:
+            return self.community_stats
+
         if not self.node_community_map:
             self.detect_communities()
 

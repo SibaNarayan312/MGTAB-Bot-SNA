@@ -46,40 +46,49 @@ export const userService = {
   },
 
   async predictUser(req: PredictRequest): Promise<PredictResponse> {
+    if (FORCE_MOCK || FORCE_MOCK_PREDICTION) {
+      return mockAdapter.predictUser(req);
+    }
 
-    const response = await apiClient.post<PredictResponse>(
-      '/predict',
-      req
-    );
+    try {
+      const response = await apiClient.post<PredictResponse>(
+        '/predict',
+        req
+      );
 
-    const data = response.data;
+      const data = response.data;
 
+      let normalizedPrediction: 'BOT' | 'HUMAN' | 'UNKNOWN';
 
-    let normalizedPrediction: 'BOT' | 'HUMAN' | 'UNKNOWN';
+      if (data.prediction_label) {
+        const label = data.prediction_label.toUpperCase();
 
-    if (data.prediction_label) {
-      const label = data.prediction_label.toUpperCase();
-
-      if (label === 'BOT') {
+        if (label === 'BOT') {
+          normalizedPrediction = 'BOT';
+        } else if (label === 'HUMAN') {
+          normalizedPrediction = 'HUMAN';
+        } else {
+          normalizedPrediction = 'UNKNOWN';
+        }
+      } else if (data.prediction === 1) {
         normalizedPrediction = 'BOT';
-      } else if (label === 'HUMAN') {
+      } else if (data.prediction === 0) {
         normalizedPrediction = 'HUMAN';
       } else {
         normalizedPrediction = 'UNKNOWN';
       }
-    } else if (data.prediction === 1) {
-      normalizedPrediction = 'BOT';
-    } else if (data.prediction === 0) {
-      normalizedPrediction = 'HUMAN';
-    } else {
-      normalizedPrediction = 'UNKNOWN';
-    }
 
-    return {
-      ...data,
-      prediction: data.prediction,
-      prediction_label: normalizedPrediction,
-      probability: data.probability,
-    };
+      return {
+        ...data,
+        prediction: data.prediction,
+        prediction_label: normalizedPrediction,
+        probability: data.probability,
+      };
+    } catch {
+      console.warn(
+        '[userService] FastAPI /predict unavailable, falling back to mock adapter.'
+      );
+      return mockAdapter.predictUser(req);
+    }
   },
 };

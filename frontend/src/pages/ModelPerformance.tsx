@@ -205,7 +205,7 @@ export const ModelPerformance: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-slate-800/60 text-slate-300">
                   {baselineData.map((b, idx) => {
-                    const isProposed = b.model_name.includes('Proposed');
+                    const isProposed = b.model_name.includes('Proposed') || b.model_name.includes('RGCN');
                     return (
                       <tr
                         key={idx}

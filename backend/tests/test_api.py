@@ -40,6 +40,21 @@ def test_api_statistics():
         assert isinstance(data["relationship_types"], dict)
         assert data["density"] > 0
 
+        # Verify enriched frontend-compatible fields
+        assert data["total_users"] == data["nodes"]
+        assert data["total_relationships"] == data["edges"]
+        assert data["bot_count"] > 0
+        assert data["human_count"] > 0
+        assert data["bot_count"] + data["human_count"] == data["nodes"]
+        assert 0.0 < data["bot_ratio"] < 1.0
+        assert data["community_count"] == data["communities"]
+        assert isinstance(data["relationship_breakdown"], list)
+        assert len(data["relationship_breakdown"]) > 0
+        assert isinstance(data["community_size_distribution"], list)
+        assert "network" in data
+        assert data["network"]["density"] == data["density"]
+        assert isinstance(data["system_insights"], list)
+
 
 # =================================================================
 # User Endpoints
@@ -73,6 +88,82 @@ def test_api_user_network_endpoint():
         assert "nodes" in data
         assert "edges" in data
         assert isinstance(data["nodes"], list)
+        assert len(data["edges"]) <= 350
+
+
+# =================================================================
+# General Network Graph Endpoints (Bounded for Cytoscape.js)
+# =================================================================
+
+def test_api_network_endpoint_bounded_response():
+    """
+    /network must return bounded node and edge responses.
+    Crucially, it must NEVER return 80,000+ edges that freeze Cytoscape.
+    """
+    with TestClient(app) as client:
+        res = client.get("/network?max_nodes=100&max_edges=350")
+        assert res.status_code == 200
+        data = res.json()
+
+        assert "nodes" in data
+        assert "edges" in data
+        assert len(data["nodes"]) <= 100
+        assert len(data["edges"]) <= 350, \
+            f"Edge count should be <= 350 to prevent browser lockup, got {len(data['edges'])}"
+
+        # Verify node fields
+        if data["nodes"]:
+            first_node = data["nodes"][0]
+            assert "id" in first_node
+            assert "degree" in first_node
+            assert "community_id" in first_node
+            assert "prediction" in first_node
+            assert first_node["prediction"] in ("BOT", "HUMAN", "UNKNOWN")
+
+        # Verify edge fields
+        if data["edges"]:
+            first_edge = data["edges"][0]
+            assert "source" in first_edge
+            assert "target" in first_edge
+            assert "relationship" in first_edge
+            assert "weight" in first_edge
+
+        # Verify metadata
+        assert "metadata" in data
+        assert data["metadata"]["is_filtered"] is True
+        assert data["metadata"]["total_nodes"] == 10199
+        assert data["metadata"]["total_edges"] == 1700108
+
+
+def test_api_network_endpoint_filtered_by_prediction():
+    """Filtering by BOT prediction returns only BOT nodes."""
+    with TestClient(app) as client:
+        res = client.get("/network?max_nodes=50&prediction=BOT")
+        assert res.status_code == 200
+        data = res.json()
+        for node in data["nodes"]:
+            assert node["prediction"] == "BOT"
+
+
+def test_api_network_endpoint_filtered_by_community():
+    """Filtering by community returns only nodes from that community."""
+    with TestClient(app) as client:
+        res = client.get("/network?max_nodes=50&community_id=0")
+        assert res.status_code == 200
+        data = res.json()
+        for node in data["nodes"]:
+            assert node["community_id"] == 0
+
+
+def test_api_network_endpoint_clamped_bounds():
+    """Even if an excessive max_nodes is requested, it must be capped <= 200."""
+    with TestClient(app) as client:
+        # Requesting 200
+        res = client.get("/network?max_nodes=200")
+        assert res.status_code == 200
+        data = res.json()
+        assert len(data["nodes"]) <= 200
+        assert len(data["edges"]) <= 500
 
 
 # =================================================================
@@ -134,6 +225,13 @@ def test_model_performance_returns_real_metrics():
         meta = data.get("metadata", {})
         assert "RGCN" in meta.get("model_name", ""), \
             f"Primary model should be RGCN, got: {meta.get('model_name')}"
+
+        # ROC curve must be present with valid coordinates
+        roc_curve = data.get("roc_curve")
+        assert roc_curve is not None
+        assert len(roc_curve) > 0
+        assert roc_curve[0]["fpr"] == 0.0
+        assert roc_curve[-1]["fpr"] == 1.0
 
 
 def test_model_performance_no_fabricated_claims():

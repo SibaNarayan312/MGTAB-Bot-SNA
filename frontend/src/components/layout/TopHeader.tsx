@@ -26,7 +26,7 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
   },
   '/coordination': {
     title: 'Coordinated Behavioral Analysis',
-    subtitle: 'Temporal synchronicity, shared entities, and suspicious subgraph formations',
+    subtitle: 'Multi-relational interaction patterns, shared entities, and suspicious subgraph formations',
   },
   '/model-performance': {
     title: 'Model Evaluation & GNN Benchmark',

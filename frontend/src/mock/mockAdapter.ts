@@ -215,11 +215,15 @@ export const mockAdapter = {
 
   async predictUser(req: PredictRequest): Promise<PredictResponse> {
     await delay(400);
-    const userId = req.user_id || 'sample_user';
-    const isBot = userId.includes('bot') || Number(userId.slice(-1)) % 2 === 0;
+    const userIdStr = String(req.user_id || '0');
+    const userIdNum = parseInt(userIdStr, 10) || 0;
+    const isBot = userIdStr.includes('bot') || Number(userIdStr.slice(-1)) % 2 === 0;
     return {
-      user_id: userId,
-      prediction: isBot ? 'BOT' : 'HUMAN',
+      status: 'success',
+      message: 'ML prediction executed successfully (Mock).',
+      user_id: userIdNum,
+      prediction: isBot ? 1 : 0,
+      prediction_label: isBot ? 'BOT' : 'HUMAN',
       probability: isBot ? 0.924 : 0.078,
       confidence: 0.95,
       explanation: [

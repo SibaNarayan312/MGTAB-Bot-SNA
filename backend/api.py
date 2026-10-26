@@ -157,16 +157,24 @@ async def get_coordination_summary():
 
 @app.get("/network", response_model=UserNetworkResponse, tags=["Graph Analytics"])
 async def get_general_network(
-    max_nodes: int = Query(100, ge=5, le=500),
-    relationship_type: Optional[str] = Query(None),
-    min_degree: int = Query(0, ge=0)
+    max_nodes: int = Query(100, ge=5, le=200, description="Max nodes to return (capped to 200 for browser safety)"),
+    max_edges: int = Query(350, ge=10, le=500, description="Max edges to return (capped to 500 for browser safety)"),
+    relationship_type: Optional[str] = Query(None, description="Filter by relationship type"),
+    min_degree: int = Query(0, ge=0, description="Minimum node degree"),
+    community_id: Optional[str] = Query(None, description="Filter by community ID"),
+    prediction: Optional[str] = Query(None, description="Filter by BOT or HUMAN prediction"),
+    search_query: Optional[str] = Query(None, description="Search node by ID")
 ):
-    """Returns top-connected network visualization graph payload for frontend Network page."""
+    """Returns top-connected bounded network visualization graph payload for frontend Network page."""
     try:
         return UserNetworkResponse(**sna_service.get_network_graph(
             max_nodes=max_nodes,
+            max_edges=max_edges,
             relationship_type=relationship_type,
-            min_degree=min_degree
+            min_degree=min_degree,
+            community_id=community_id,
+            prediction=prediction,
+            search_query=search_query
         ))
     except Exception as e:
         logger.error(f"Error fetching network graph: {e}")

@@ -40,26 +40,55 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
   const cyRef = useRef<Core | null>(null);
 
   const [layoutAlgorithm, setLayoutAlgorithm] = useState<GraphLayoutAlgorithm>(initialLayout);
+  const layoutAlgorithmRef = useRef<GraphLayoutAlgorithm>(initialLayout);
+  useEffect(() => {
+    layoutAlgorithmRef.current = layoutAlgorithm;
+  }, [layoutAlgorithm]);
+
   const [selectedNode, setSelectedNode] = useState<GraphNodeData | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<GraphEdgeData | null>(null);
 
-  // Initialize and Render Cytoscape Graph
+  // Stable callback ref to prevent Cytoscape re-creation when parent re-renders
+  const onNodeSelectRef = useRef(onNodeSelect);
+  useEffect(() => {
+    onNodeSelectRef.current = onNodeSelect;
+  }, [onNodeSelect]);
+
+  // Clean destruction of previous Cytoscape instance
+  const destroyCytoscape = useCallback(() => {
+    if (cyRef.current) {
+      try {
+        cyRef.current.stop();
+        cyRef.current.removeAllListeners();
+        cyRef.current.destroy();
+      } catch (err) {
+        console.warn('[NetworkGraph] Error during Cytoscape teardown:', err);
+      }
+      cyRef.current = null;
+    }
+  }, []);
+
+  // Initialize and Render Cytoscape Graph with defensive limits
   const renderGraph = useCallback(() => {
     if (!containerRef.current || !data || data.nodes.length === 0) return;
 
-    // Cleanup previous instance
-    if (cyRef.current) {
-      cyRef.current.destroy();
-      cyRef.current = null;
-    }
+    // Cleanup previous instance before instantiating a new one
+    destroyCytoscape();
+
+    // Defensive capping: max 200 nodes and 400 edges
+    const safeNodes = data.nodes.slice(0, 200);
+    const safeNodeIdSet = new Set(safeNodes.map((n) => String(n.id)));
+    const safeEdges = data.edges
+      .filter((e) => safeNodeIdSet.has(String(e.source)) && safeNodeIdSet.has(String(e.target)))
+      .slice(0, 400);
 
     // Convert to Cytoscape format
     const elements: cytoscape.ElementDefinition[] = [
-      ...data.nodes.map((node) => ({
+      ...safeNodes.map((node) => ({
         group: 'nodes' as const,
         data: {
-          id: node.id,
-          label: node.label || node.id,
+          id: String(node.id),
+          label: node.label || `User ${node.id}`,
           screen_name: node.screen_name,
           prediction: node.prediction || 'UNKNOWN',
           probability: node.probability,
@@ -67,70 +96,72 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
           degree: node.degree || 10,
           pagerank: node.pagerank || 0.001,
           clustering: node.clustering,
-          is_seed: node.is_seed,
+          is_seed: Boolean(node.is_seed),
         },
       })),
-      ...data.edges.map((edge, idx) => ({
+      ...safeEdges.map((edge, idx) => ({
         group: 'edges' as const,
         data: {
           id: edge.id || `e-${edge.source}-${edge.target}-${idx}`,
-          source: edge.source,
-          target: edge.target,
+          source: String(edge.source),
+          target: String(edge.target),
           relationship: edge.relationship || 'FOLLOW',
           weight: edge.weight || 1,
         },
       })),
     ];
 
-    // Create Cytoscape instance
-    const cy = cytoscape({
-      container: containerRef.current,
-      elements,
-      style: getCytoscapeStylesheet(),
-      layout: getLayoutConfig(layoutAlgorithm),
-      minZoom: 0.15,
-      maxZoom: 3.5,
-      wheelSensitivity: 0.25,
-      boxSelectionEnabled: false,
-    });
+    try {
+      // Create Cytoscape instance
+      const cy = cytoscape({
+        container: containerRef.current,
+        elements,
+        style: getCytoscapeStylesheet(),
+        layout: getLayoutConfig(layoutAlgorithmRef.current),
+        minZoom: 0.15,
+        maxZoom: 3.5,
+        wheelSensitivity: 0.25,
+        boxSelectionEnabled: false,
+      });
 
-    // Node click handler
-    cy.on('tap', 'node', (evt: EventObject) => {
-      const nodeData = evt.target.data() as GraphNodeData;
-      setSelectedNode(nodeData);
-      setSelectedEdge(null);
-      if (onNodeSelect) onNodeSelect(nodeData);
-    });
-
-    // Edge click handler
-    cy.on('tap', 'edge', (evt: EventObject) => {
-      const edgeData = evt.target.data() as GraphEdgeData;
-      setSelectedEdge(edgeData);
-      setSelectedNode(null);
-    });
-
-    // Background click handler
-    cy.on('tap', (evt: EventObject) => {
-      if (evt.target === cy) {
-        setSelectedNode(null);
+      // Node click handler using stable ref
+      cy.on('tap', 'node', (evt: EventObject) => {
+        const nodeData = evt.target.data() as GraphNodeData;
+        setSelectedNode(nodeData);
         setSelectedEdge(null);
-        if (onNodeSelect) onNodeSelect(null);
-      }
-    });
+        onNodeSelectRef.current?.(nodeData);
+      });
 
-    cyRef.current = cy;
-  }, [data, layoutAlgorithm, onNodeSelect]);
+      // Edge click handler
+      cy.on('tap', 'edge', (evt: EventObject) => {
+        const edgeData = evt.target.data() as GraphEdgeData;
+        setSelectedEdge(edgeData);
+        setSelectedNode(null);
+      });
 
+      // Background click handler
+      cy.on('tap', (evt: EventObject) => {
+        if (evt.target === cy) {
+          setSelectedNode(null);
+          setSelectedEdge(null);
+          onNodeSelectRef.current?.(null);
+        }
+      });
+
+      cyRef.current = cy;
+    } catch (err) {
+      console.error('[NetworkGraph] Failed to initialize Cytoscape instance:', err);
+    }
+  }, [data, destroyCytoscape]);
+
+  // Re-render only when data changes
   useEffect(() => {
     renderGraph();
 
     return () => {
-      if (cyRef.current) {
-        cyRef.current.destroy();
-        cyRef.current = null;
-      }
+      destroyCytoscape();
     };
-  }, [renderGraph]);
+  }, [renderGraph, destroyCytoscape]);
 
   // Graph control handlers
   const handleZoomIn = () => {
@@ -153,6 +184,7 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
 
   const handleResetLayout = () => {
     if (cyRef.current) {
+      cyRef.current.stop();
       const layout = cyRef.current.layout(getLayoutConfig(layoutAlgorithm));
       layout.run();
     }
@@ -160,7 +192,9 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
 
   const handleLayoutChange = (newLayout: GraphLayoutAlgorithm) => {
     setLayoutAlgorithm(newLayout);
+    layoutAlgorithmRef.current = newLayout;
     if (cyRef.current) {
+      cyRef.current.stop();
       const layout = cyRef.current.layout(getLayoutConfig(newLayout));
       layout.run();
     }

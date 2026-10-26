@@ -24,38 +24,67 @@ export const NetworkAnalysis: React.FC = () => {
     maxNodes: 100,
   });
 
+  const [debouncedFilters, setDebouncedFilters] = useState<NetworkFilterOptions>(filters);
   const [filterPanelOpen, setFilterPanelOpen] = useState<boolean>(true);
 
-  const fetchGraph = useCallback(async () => {
+  // Debounce filters (especially search query and slider changes)
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedFilters(filters);
+    }, 350);
+    return () => clearTimeout(handler);
+  }, [filters]);
+
+  // Load community options once on mount
+  useEffect(() => {
+    let isMounted = true;
+    communityService.getCommunities()
+      .then((commList) => {
+        if (isMounted) setCommunities(commList);
+      })
+      .catch((err) => {
+        console.warn('[NetworkAnalysis] Failed to load communities for filter dropdown:', err);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Fetch bounded graph data based on debounced filters
+  const fetchGraph = useCallback(async (customFilters?: NetworkFilterOptions) => {
     setLoading(true);
     setError(null);
     try {
-      const [graph, commList] = await Promise.all([
-        networkService.getNetwork(filters),
-        communityService.getCommunities(),
-      ]);
+      const activeFilters = customFilters || debouncedFilters;
+      const graph = await networkService.getNetwork(activeFilters);
       setGraphData(graph);
-      setCommunities(commList);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load network graph visualization.');
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [debouncedFilters]);
 
   useEffect(() => {
     fetchGraph();
   }, [fetchGraph]);
 
+  const handleReload = () => {
+    fetchGraph(filters);
+  };
+
   const handleResetFilters = () => {
-    setFilters({
-      prediction: 'ALL',
+    const reset = {
+      prediction: 'ALL' as const,
       communityId: 'ALL',
       relationshipType: 'ALL',
       minDegree: 0,
       searchQuery: '',
       maxNodes: 100,
-    });
+    };
+    setFilters(reset);
+    setDebouncedFilters(reset);
+    fetchGraph(reset);
   };
 
   return (
@@ -75,7 +104,7 @@ export const NetworkAnalysis: React.FC = () => {
             </button>
 
             <button
-              onClick={fetchGraph}
+              onClick={handleReload}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold shadow-sm transition-colors"
             >
               <RefreshCw className="w-3.5 h-3.5" />

@@ -441,7 +441,7 @@ export const MOCK_COORDINATION: CoordinationSummaryResponse = {
   total_flagged_groups: 7,
   average_coordination_score: 0.824,
   top_coordination_signals: [
-    { signal: 'Synchronized Retweet Latency (<5s)', frequency: 6 },
+    { signal: 'Dense Multi-Relational Reciprocity', frequency: 6 },
     { signal: 'Repeated Mention Flooding', frequency: 5 },
     { signal: 'Shared URL Domain Co-occurrence', frequency: 4 },
     { signal: 'Near-Identical Profile Creation Dates', frequency: 4 },
@@ -468,10 +468,10 @@ export const MOCK_COORDINATION: CoordinationSummaryResponse = {
           category: 'topological',
         },
         {
-          signal: 'Synchronous Temporal Action Timestamps',
+          signal: 'Elevated Interaction Density & Pattern Alignment',
           score: 0.91,
-          description: 'Standard deviation of retweet response latency is under 4.2 seconds',
-          category: 'temporal',
+          description: 'High concentration of shared relation edges and neighbour interaction similarity',
+          category: 'topological',
         },
         {
           signal: 'Shared URL Redirection Co-occurrence',

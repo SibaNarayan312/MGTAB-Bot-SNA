@@ -259,9 +259,9 @@ Returns in-depth details for a community partition.
   "average_degree": 18.4,
   "signals": [
     {
-      "signal": "Synchronized Retweet Bursts",
+      "signal": "High Interaction Density & Reciprocity",
       "score": 0.91,
-      "description": "Multiple accounts retweeting seed accounts within a 5s window"
+      "description": "Multiple accounts with elevated multi-relational interaction density and reciprocal edges"
     }
   ],
   "network_statistics": {
@@ -299,7 +299,7 @@ Returns detected coordinated bot clusters, signals, and shared entities.
   "total_flagged_groups": 7,
   "average_coordination_score": 0.824,
   "top_coordination_signals": [
-    { "signal": "Synchronized Retweet Latency (<5s)", "frequency": 6 },
+    { "signal": "Dense Multi-Relational Reciprocity", "frequency": 6 },
     { "signal": "Repeated Mention Flooding", "frequency": 5 }
   ],
   "groups": [
@@ -316,9 +316,9 @@ Returns detected coordinated bot clusters, signals, and shared entities.
       "subgraph_density": 0.084,
       "signals": [
         {
-          "signal": "Synchronous Temporal Action Timestamps",
+          "signal": "Elevated Interaction Density & Pattern Alignment",
           "score": 0.91,
-          "description": "Standard deviation of retweet latency is under 4.2s"
+          "description": "High concentration of shared relation edges and neighbour interaction similarity"
         }
       ],
       "shared_entities": {
